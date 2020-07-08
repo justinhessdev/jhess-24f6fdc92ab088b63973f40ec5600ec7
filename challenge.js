@@ -1,10 +1,14 @@
 "use strict";
+
 /* globals _, engine */
 window.initGame = function () {
   console.log("initgame");
   // you're really better off leaving this line alone, i promise.
   const command =
     "5 3 \n 1 1 s\n ffffff\n 2 1 w \n flfffffrrfffffff\n 0 3 w\n LLFFFLFLFL";
+
+  let bounds = [];
+  const outOfBoundsLocations = [];
 
   // this function parses the input string so that we have useful names/parameters
   // to define the playfield and robots for subsequent steps
@@ -20,14 +24,13 @@ window.initGame = function () {
 
     // replace this with a correct object
 
-    const bounds = establishBounds(input);
+    bounds = establishBounds(input);
     const robos = createRobos(input);
     const parsed = {
       bounds,
       robos,
     };
 
-    console.warn("logging parsed", JSON.stringify(parsed, null, 2));
     return parsed;
   };
 
@@ -56,18 +59,92 @@ window.initGame = function () {
     const robo = {
       x: parseInt(positionValues[0]),
       y: parseInt(positionValues[1]),
-      o: positionValues[2],
+      o: positionValues[2].toUpperCase(),
       command: instructionValues,
     };
 
     return robo;
   };
 
+  const cardinals = {
+    N: {
+      L: "W",
+      R: "E",
+      forward: (x, y) => {
+        return { x: x, y: y - 1 };
+      },
+    },
+    E: {
+      L: "N",
+      R: "S",
+      forward: (x, y) => {
+        return { x: x + 1, y: y };
+      },
+    },
+    S: {
+      L: "E",
+      R: "W",
+      forward: (x, y) => {
+        return { x: x, y: y + 1 };
+      },
+    },
+    W: {
+      L: "S",
+      R: "N",
+      forward: (x, y) => {
+        return { x: x - 1, y: y };
+      },
+    },
+  };
+
+  const checkBounds = (movedRobo, bounds) => {
+    if (
+      movedRobo.x > bounds[0] ||
+      movedRobo.x < 0 ||
+      movedRobo.y > bounds[1] ||
+      movedRobo.y < 0
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  function isRoboAtEdge(robo, locations) {
+    if (!robo || !locations || !locations.length) {
+      return false;
+    }
+
+    for (let location of locations) {
+      if (
+        robo.x === location.x &&
+        robo.y === location.y &&
+        robo.o === location.o
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function addOutofBoundsLocation(location) {
+    if (location.x > bounds[0]) {
+      location.x = bounds[0];
+    } else if (location.y > bounds[1]) {
+      location.y = bounds[1];
+    } else if (location.x < 0) {
+      location.x = 0;
+    } else if (location.y < 0) {
+      location.y = 0;
+    }
+
+    delete location.command; // using delete this way can remove keys/properties from an object
+    outOfBoundsLocations.push(location);
+  }
+
   // this function replaces the robos after they complete one instruction
   // from their commandset
   const tickRobos = (robos) => {
-    console.log("tickrobos");
-    //
     // task #2
     //
     // in this function, write business logic to move robots around the playfield
@@ -90,9 +167,45 @@ window.initGame = function () {
 
     // write robot logic here
 
+    for (let i = 0; i < robos.length; i++) {
+      let firstInstruction = "";
+      if (robos[i].command) {
+        firstInstruction = robos[i].command[0].toUpperCase();
+        const orientation = robos[i].o.toUpperCase();
+        if (firstInstruction === "F") {
+          // do a quick test if robo is at edge. if so we don't move forward
+          if (!isRoboAtEdge(robos[i], outOfBoundsLocations)) {
+            const newCoordinates = cardinals[orientation]["forward"](
+              robos[i].x,
+              robos[i].y
+            );
+            robos[i] = {
+              ...robos[i],
+              ...newCoordinates,
+            };
+          }
+        }
+
+        if (firstInstruction === "L" || firstInstruction === "R") {
+          robos[i].o = cardinals[orientation][firstInstruction];
+        }
+
+        robos[i].command = robos[i].command.substring(1);
+      }
+
+      // Did a robot go out of bounds?
+      // If so add that location to our outOfBoundsLocation arr to leave the 'scent' for other robos
+      const isRoboOutOfBounds = checkBounds(robos[i], bounds);
+      if (isRoboOutOfBounds) {
+        const roboLocation = robos.splice(i, 1)[0]; // splice returns an array so i add zero to get the item that was deleted
+        addOutofBoundsLocation(roboLocation);
+      }
+    }
+
     // return the mutated robos object from the input to match the new state
-    // return ???;
+    return robos;
   };
+
   // mission summary function
   const missionSummary = (robos) => {
     //
