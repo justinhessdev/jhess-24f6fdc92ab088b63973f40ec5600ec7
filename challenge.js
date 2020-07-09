@@ -1,5 +1,4 @@
 "use strict";
-
 /* globals _, engine */
 window.initGame = function () {
   console.log("initgame");
@@ -10,22 +9,15 @@ window.initGame = function () {
   let bounds = [];
   const outOfBoundsLocations = [];
 
-  // this function parses the input string so that we have useful names/parameters
-  // to define the playfield and robots for subsequent steps
+  // task #1
   const parseInput = (input) => {
-    //
-    // task #1
-    //
-    // replace the 'parsed' variable below to be the string 'command' parsed into an object we can pass to genworld();
-    // genworld expects an input object in the form { 'bounds': [3, 8], 'robos': [{x: 2, y: 1, o: 'W', command: 'rlrlff'}]}
-    // where bounds represents the southeast corner of the plane and each robos object represents the
-    // x,y coordinates of a robot and o is a string representing their orientation. a sample object is provided below
-    //
+    // es6 way to destructure array with first item (bounds) and rest of items (robots)
+    const [inputBounds, ...inputRobos] = input
+      .split("\n")
+      .map((item) => item.split(" ").filter(Boolean));
 
-    // replace this with a correct object
-
-    bounds = establishBounds(input);
-    const robos = createRobos(input);
+    bounds = inputBounds.map((val) => parseInt(val));
+    const robos = createRobos(inputRobos); // take rest of our input to create robos array (createRobos declaration in helpers.js)
     const parsed = {
       bounds,
       robos,
@@ -34,139 +26,8 @@ window.initGame = function () {
     return parsed;
   };
 
-  //Parsing and printing functions
-  const establishBounds = (input) => {
-    const bounds = input
-      .split("\n")[0]
-      .split(" ")
-      .filter(Boolean) // filter Boolean gets rid of empty items in array
-      .map((val) => parseInt(val)); // turn type string into type number
-    return bounds;
-  };
-
-  const createRobos = (input) => {
-    const robos = [];
-    const roboInput = input.split("\n");
-    for (let i = 1; i < roboInput.length; i = i + 2) {
-      robos.push(createRobo(roboInput[i], roboInput[i + 1])); // 1st arg position, 2nd arg instruction
-    }
-    return robos;
-  };
-
-  const createRobo = (position, instruction) => {
-    const positionValues = position.split(" ").filter(Boolean); // filter Boolean gets rid of empty items in array
-    const instructionValues = instruction.split(" ").filter(Boolean).toString();
-    const robo = {
-      x: parseInt(positionValues[0]),
-      y: parseInt(positionValues[1]),
-      o: positionValues[2].toUpperCase(),
-      command: instructionValues,
-    };
-
-    return robo;
-  };
-
-  const cardinals = {
-    N: {
-      L: "W",
-      R: "E",
-      forward: (x, y) => {
-        return { x: x, y: y - 1 };
-      },
-    },
-    E: {
-      L: "N",
-      R: "S",
-      forward: (x, y) => {
-        return { x: x + 1, y: y };
-      },
-    },
-    S: {
-      L: "E",
-      R: "W",
-      forward: (x, y) => {
-        return { x: x, y: y + 1 };
-      },
-    },
-    W: {
-      L: "S",
-      R: "N",
-      forward: (x, y) => {
-        return { x: x - 1, y: y };
-      },
-    },
-  };
-
-  const checkBounds = (movedRobo, bounds) => {
-    if (
-      movedRobo.x > bounds[0] ||
-      movedRobo.x < 0 ||
-      movedRobo.y > bounds[1] ||
-      movedRobo.y < 0
-    ) {
-      return true;
-    }
-    return false;
-  };
-
-  function isRoboAtEdge(robo, locations) {
-    if (!robo || !locations || !locations.length) {
-      return false;
-    }
-
-    for (let location of locations) {
-      if (
-        robo.x === location.x &&
-        robo.y === location.y &&
-        robo.o === location.o
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  function addOutofBoundsLocation(location) {
-    if (location.x > bounds[0]) {
-      location.x = bounds[0];
-    } else if (location.y > bounds[1]) {
-      location.y = bounds[1];
-    } else if (location.x < 0) {
-      location.x = 0;
-    } else if (location.y < 0) {
-      location.y = 0;
-    }
-
-    delete location.command; // using delete this way can remove keys/properties from an object
-    outOfBoundsLocations.push(location);
-  }
-
-  // this function replaces the robos after they complete one instruction
-  // from their commandset
+  // task #2
   const tickRobos = (robos) => {
-    // task #2
-    //
-    // in this function, write business logic to move robots around the playfield
-    // the 'robos' input is an array of objects; each object has 4 parameters.
-    // This function needs to edit each robot in the array so that its x/y coordinates
-    // and orientation parameters match the robot state after 1 command has been completed.
-    // Also, you need to remove the command the robot just completed from the command list.
-    // example input:
-    //
-    // robos[0] = {x: 2, y: 2, o: 'N', command: 'frlrlrl'}
-    //
-    //                   - becomes -
-    //
-    // robos[0] = {x: 2, y: 1, o: 'N', command: 'rlrlrl'}
-    //
-    // if a robot leaves the bounds of the playfield, it should be removed from the robos
-    // array. It should leave a 'scent' in it's place. If another robot–for the duration
-    // of its commandset–encounters this 'scent', it should refuse any commands that would
-    // cause it to leave the playfield.
-
-    // write robot logic here
-
     for (let i = 0; i < robos.length; i++) {
       let firstInstruction = "";
       if (robos[i].command) {
@@ -199,7 +60,7 @@ window.initGame = function () {
       const isRoboOutOfBounds = checkBounds(robos[i], bounds);
       if (isRoboOutOfBounds) {
         const roboLocation = robos.splice(i, 1)[0]; // splice returns an array so i add zero to get the item that was deleted
-        addOutofBoundsLocation(roboLocation);
+        addOutofBoundsLocation(roboLocation, bounds, outOfBoundsLocations);
       }
     }
 
@@ -207,13 +68,8 @@ window.initGame = function () {
     return robos;
   };
 
-  // mission summary function
+  // task #3
   const missionSummary = (robos) => {
-    //
-    // task #3
-    //
-    // summarize the mission and inject the results into the DOM elements referenced in readme.md
-    //
     const ulRobots = document.getElementById("robots");
     for (let i = 0; i < robos.length; i++) {
       const li = document.createElement("li");
