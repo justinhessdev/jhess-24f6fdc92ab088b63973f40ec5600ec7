@@ -193,8 +193,9 @@ window.initGame = function () {
         robos[i].command = robos[i].command.substring(1);
       }
 
-      // Did a robot go out of bounds?
+      // Checks if robot went out of bounds
       // If so add that location to our outOfBoundsLocation arr to leave the 'scent' for other robos
+      // and remove that robot from our robos array
       const isRoboOutOfBounds = checkBounds(robos[i], bounds);
       if (isRoboOutOfBounds) {
         const roboLocation = robos.splice(i, 1)[0]; // splice returns an array so i add zero to get the item that was deleted
@@ -213,6 +214,27 @@ window.initGame = function () {
     //
     // summarize the mission and inject the results into the DOM elements referenced in readme.md
     //
+    const ulRobots = document.getElementById("robots");
+    for (let i = 0; i < robos.length; i++) {
+      const li = document.createElement("li");
+      li.appendChild(
+        document.createTextNode(
+          `Position: ${robos[i].x}, ${robos[i].y} | Orientation: ${robos[i].o}`
+        )
+      );
+      ulRobots.appendChild(li);
+    }
+
+    const ulLostRobots = document.getElementById("lostRobots");
+    for (let i = 0; i < outOfBoundsLocations.length; i++) {
+      const li = document.createElement("li");
+      li.appendChild(
+        document.createTextNode(
+          `Lost contact going ${outOfBoundsLocations[i].o} from coordinates: ${outOfBoundsLocations[i].x}, ${outOfBoundsLocations[i].y}`
+        )
+      );
+      ulLostRobots.appendChild(li);
+    }
     return;
   };
 
